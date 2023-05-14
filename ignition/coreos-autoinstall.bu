@@ -1,0 +1,18 @@
+variant: fcos
+version: 1.5.0
+
+systemd:
+  units:
+  - name: coreos-installer.service
+    enabled: true
+    contents_local: coreos-autoinstall/coreos-installer.service
+
+storage:
+  files:
+    - path: /usr/local/bin/coreos-installer.sh
+      mode: 0755
+      contents:
+        local: coreos-autoinstall/coreos-installer.sh
+    - path: /home/core/config.ign
+      contents:
+        local: build/k3s-autoinstall.ign

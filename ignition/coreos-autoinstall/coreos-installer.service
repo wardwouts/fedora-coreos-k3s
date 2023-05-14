@@ -1,0 +1,17 @@
+[Unit]
+After=network-online.target
+Wants=network-online.target
+Before=systemd-user-sessions.service
+OnFailure=emergency.target
+OnFailureJobMode=replace-irreversibly
+
+[Service]
+RemainAfterExit=yes
+Type=oneshot
+ExecStart=/usr/local/bin/run-coreos-installer
+ExecStartPost=/usr/bin/systemctl --no-block poweroff
+StandardOutput=kmsg+console
+StandardError=kmsg+console
+
+[Install]
+WantedBy=multi-user.target

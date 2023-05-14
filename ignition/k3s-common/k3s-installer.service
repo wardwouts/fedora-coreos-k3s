@@ -1,0 +1,19 @@
+[Unit]
+After=network-online.target
+Wants=network-online.target
+Before=systemd-user-sessions.service
+OnFailure=emergency.target
+OnFailureJobMode=replace-irreversibly
+ConditionPathExists=/var/lib/k3s-prereq-installed
+ConditionPathExists=!/var/lib/k3s-installed
+
+[Service]
+RemainAfterExit=yes
+Type=oneshot
+ExecStart=/usr/local/bin/k3s-installer.sh
+ExecStartPost=/usr/bin/touch /var/lib/k3s-installed
+StandardOutput=kmsg+console
+StandardError=kmsg+console
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,40 @@
+variant: fcos
+version: 1.5.0
+
+systemd:
+  units:
+  - name: getty@tty1.service
+    dropins:
+    - name: autologin-core.conf
+      contents: |
+        [Service]
+        ExecStart=
+        ExecStart=-/usr/sbin/agetty --autologin core --noclear %I $TERM
+
+  - name: k3s-prereq-installer.service
+    enabled: true
+    contents_local: k3s-common/k3s-prereq-installer.service
+
+  - name: k3s-installer.service
+    enabled: true
+    contents_local: k3s-common/k3s-installer.service
+
+  - name: firewalld.service
+    enabled: false
+
+storage:
+  files:
+    - path: /usr/local/bin/k3s-prereq-installer.sh
+      mode: 0755
+      contents:
+        local: k3s-common/k3s-prereq-installer.sh
+
+    - path: /usr/local/bin/k3s-installer.sh
+      mode: 0755
+      contents:
+        local: build/k3s-installer.sh
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys_local:
+        - k3s-common/ssh_authorized_keys.txt
