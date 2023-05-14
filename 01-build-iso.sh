@@ -8,7 +8,7 @@ usage() {
   echo "Tool to build iso files for creating k3s nodes on fedora coreos"
   echo
   echo "Usage:"
-  echo "$0 [-ah] [-s serverurl] -t <token>"
+  echo "$0 [-abh] [-s serverurl] -t <token>"
   echo
   echo "-a		Create ISO for agent, default is server"
   echo "-b		Create both server and agent ISOs"
