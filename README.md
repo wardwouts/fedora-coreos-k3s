@@ -3,7 +3,8 @@
 This builds on the work of:
 - https://www.murillodigital.com/tech_talk/k3s_in_coreos/
 - https://stevex0r.medium.com/setting-up-a-lightweight-kubernetes-cluster-with-k3s-and-fedora-coreos-12d504160366
-and tries to modernize things a bit and automate further.
+
+And tries to modernize things a bit and automate further.
 
 Creating the ISOs for automatic installation should be as simple as:
 ```
