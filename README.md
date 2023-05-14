@@ -10,7 +10,7 @@ Creating the ISOs for automatic installation should be as simple as:
 ```
 ./01-build-iso.sh -b -t <TOKEN> -u <SERVER URL>
 ```
-This should generate both an `agent.iso` and `server.iso` file. The server URL shoudl have the format of `https://ServerIP:6443`.
+This should generate both an `agent.iso` and `server.iso` file. The server URL should have the format of `https://ServerIP:6443`.
 
 Before doing this you will want to add your own public ssh keys to `ignition/k3s-common-ssh_authorized_keys.txt`, so that you can access your own k3s cluster hosts afterwards.
 
