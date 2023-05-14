@@ -19,8 +19,8 @@ systemd:
     enabled: true
     contents_local: k3s-common/k3s-installer.service
 
-  - name: firewalld.service
-    enabled: false
+#  - name: firewalld.service
+#    enabled: false
 
 storage:
   files:
