@@ -26,6 +26,7 @@ Usage:
 -a              Create ISO for agent, default is server
 -b              Create both server and agent ISOs
 -h              This help message
+-s              Single node (can't be used with -a/-b)
 -t <token>      Use this token for cluster
 -u <serverurl>  Server URL (needed with -a/-b)
 ```
