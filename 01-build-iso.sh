@@ -8,13 +8,14 @@ usage() {
   echo "Tool to build iso files for creating k3s nodes on fedora coreos"
   echo
   echo "Usage:"
-  echo "$0 [-abh] [-s serverurl] -t <token>"
+  echo "$0 [-abh] [-u serverurl] -t <token>"
   echo
   echo "-a		Create ISO for agent, default is server"
   echo "-b		Create both server and agent ISOs"
   echo "-h		This help message"
+  echo "-s		Single node (can't be used with -a/-b)"
   echo "-t <token>	Use this token for cluster"
-  echo "-s <serverurl>	Server URL (needed with -a/-b)"
+  echo "-u <serverurl>	Server URL (needed with -a/-b)"
   exit
 }
 
@@ -41,7 +42,7 @@ SERVERURL=""
 
 # getopts only allows single letter options (but is apparently the most
 # portable). If you want multi letter options (eg --help) use getopt.
-while getopts "habt:s:" opt; do
+while getopts "habst:u:" opt; do
   case "$opt" in
   a)  INSTALL_TYPE="agent" ;;
   b)  CREATE_BOTH="yes" ;;
@@ -49,8 +50,9 @@ while getopts "habt:s:" opt; do
       usage
       exit 0
       ;;
+  s)  INSTALL_TYPE="single" ;;
   t)  TOKEN="$OPTARG" ;;
-  s)  SERVERURL="$OPTARG" ;;
+  u)  SERVERURL="$OPTARG" ;;
   ?)  exit 1 ;; # message provided by getopts
   esac
 done
@@ -62,13 +64,13 @@ shift $((OPTIND-1))
 MYDIR=$(dirname "$(realpath "$0")")
 MYNAME=$(basename "$(realpath "$0")")
 
-if [ -z "${TOKEN}" ]; then
+if [ ! "${INSTALL_TYPE}" == "single" -a -z "${TOKEN}" ]; then
   echo "Error: Token (-t) needed"
   usage
 fi
 
 if [ -n "${CREATE_BOTH}" -a -z "${SERVERURL}" ]; then
-  echo "Error: Server URL (-s) needed"
+  echo "Error: Server URL (-u) needed"
   usage
 fi
 
@@ -86,7 +88,7 @@ if [ -n "${CREATE_BOTH}" ]; then
 fi
 
 if [ "${INSTALL_TYPE}" == "agent" -a -z "${SERVERURL}" ]; then
-  echo "Error: Server URL (-s) needed"
+  echo "Error: Server URL (-u) needed"
   usage
 fi
 
@@ -106,14 +108,21 @@ ISOFILE=$(ls fedora-coreos-*.iso | tail -n 1)
 echo
 if [ $INSTALL_TYPE == "server" ]; then
   echo "Setting up for server"
-  sed -e "s/%%% INSTALL OPTS %%%/server --flannel-backend none --token ${TOKEN}/" \
+  sed -e "s/%%% INSTALL OPTS %%%/server --token ${TOKEN} --with-node-id/" \
     < ignition/k3s-template/k3s-installer.sh \
     > ignition/build/k3s-installer.sh
 else
-  echo "Setting up for agent"
-  sed -e "s#%%% INSTALL OPTS %%%#agent --server ${SERVERURL} --token ${TOKEN}#" \
-    < ignition/k3s-template/k3s-installer.sh \
-    > ignition/build/k3s-installer.sh
+  if [ $INSTALL_TYPE == "agent" ]; then
+    echo "Setting up for agent"
+    sed -e "s#%%% INSTALL OPTS %%%#agent --server ${SERVERURL} --token ${TOKEN} --with-node-id#" \
+      < ignition/k3s-template/k3s-installer.sh \
+      > ignition/build/k3s-installer.sh
+  else
+    echo "Setting up for single node"
+    sed -e "s/%%% INSTALL OPTS %%%//" \
+      < ignition/k3s-template/k3s-installer.sh \
+      > ignition/build/k3s-installer.sh
+  fi
 fi
 
 echo
