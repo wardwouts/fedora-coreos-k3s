@@ -5,6 +5,8 @@ main() {
 
     if [ -b /dev/sda ]; then
         install_device='/dev/sda'
+    elif [ -b /dev/vda ]; then
+        install_device='/dev/vda'
     elif [ -b /dev/nvme0 ]; then
         install_device='/dev/nvme0'
     else
