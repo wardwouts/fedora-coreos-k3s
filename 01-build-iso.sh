@@ -47,8 +47,6 @@ SERVERURL=""
 SSH_KEYFILE=""
 NO_KEYFILE=""
 
-echo $*
-
 # getopts only allows single letter options (but is apparently the most
 # portable). If you want multi letter options (eg --help) use getopt.
 while getopts "abhKk:st:u:" opt; do
@@ -137,19 +135,19 @@ echo
 if [ $INSTALL_TYPE == "server" ]; then
   echo "Setting up for server"
   sed -e "s/%%% INSTALL OPTS %%%/server --token ${TOKEN} --with-node-id/" \
-    < ignition/k3s-template/k3s-installer.sh \
-    > ignition/build/k3s-installer.sh
+    < ignition/k3s-common/k3s-installer.service \
+    > ignition/build/k3s-installer.service
 else
   if [ $INSTALL_TYPE == "agent" ]; then
     echo "Setting up for agent"
     sed -e "s#%%% INSTALL OPTS %%%#agent --server ${SERVERURL} --token ${TOKEN} --with-node-id#" \
-      < ignition/k3s-template/k3s-installer.sh \
-      > ignition/build/k3s-installer.sh
+      < ignition/k3s-template/k3s-installer.service \
+      > ignition/build/k3s-installer.service
   else
     echo "Setting up for single node"
     sed -e "s/%%% INSTALL OPTS %%%//" \
-      < ignition/k3s-template/k3s-installer.sh \
-      > ignition/build/k3s-installer.sh
+      < ignition/k3s-template/k3s-installer.service \
+      > ignition/build/k3s-installer.service
   fi
 fi
 

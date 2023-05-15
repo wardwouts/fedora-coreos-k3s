@@ -1,17 +1,21 @@
 [Unit]
+Description=K3S installer service
 After=network-online.target
 Wants=network-online.target
 Before=systemd-user-sessions.service
 OnFailure=emergency.target
 OnFailureJobMode=replace-irreversibly
-ConditionPathExists=/var/lib/k3s-prereq-installed
-ConditionPathExists=!/var/lib/k3s-installed
 
 [Service]
 RemainAfterExit=yes
 Type=oneshot
-ExecStart=/usr/local/bin/k3s-installer.sh
-ExecStartPost=/usr/bin/touch /var/lib/k3s-installed
+Environment="INSTALL_K3S_SKIP_SELINUX_RPM=true"
+Environment="INSTALL_K3S_SELINUX_WARN=true"
+Environment="K3S_KUBECONFIG_MODE=644"
+Environment="INSTALL_K3S_EXEC=%%% INSTALL OPTS %%%"
+ExecStart=sh -c 'curl -sfL https://get.k3s.io | sh -'
+ExecStartPost=sh -c 'echo "selinux: true" >> /etc/rancher/k3s/config.yaml'
+ExecStartPost=/usr/bin/systemctl disable k3s-installer.service
 StandardOutput=kmsg+console
 StandardError=kmsg+console
 
