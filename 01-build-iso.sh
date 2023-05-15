@@ -42,12 +42,12 @@ sshkeycopy() {
   SSH_KEYFILE="$1"
   SSH_OUTFILE="$2"
   rm -f "${SSH_OUTFILE}"
-  while read LINE; do
+  while read -r LINE; do
     if ( echo "${LINE}" | grep -q '^github:' ); then
       USER=${LINE##github:}
-      curl -s https://github.com/${USER}.keys >> "${SSH_OUTFILE}"
+      curl -s "https://github.com/${USER}.keys" >> "${SSH_OUTFILE}"
     else
-      echo $LINE >> "${SSH_OUTFILE}"
+      echo "${LINE}" >> "${SSH_OUTFILE}"
     fi
   done < "${SSH_KEYFILE}"
 }
@@ -93,13 +93,13 @@ MYDIR=$(dirname "$(realpath "$0")")
 MYNAME=$(basename "$(realpath "$0")")
 
 # SSH keyfile is very likely needed
-if [ -z "${SSH_KEYFILE}" -a -z "${NO_KEYFILE}" ]; then
+if [ -z "${SSH_KEYFILE}" ] && [ -z "${NO_KEYFILE}" ]; then
   if ( ! askyn "No SSH keyfile supplied. You won't be able to login over SSH. Continue?" ); then
     exit
   fi
 else
   if [ -z ${NO_KEYFILE} ]; then
-    if [ -n "${SSH_KEYFILE}" -a -r "${SSH_KEYFILE}" ]; then
+    if [ -n "${SSH_KEYFILE}" ] && [ -r "${SSH_KEYFILE}" ]; then
       sshkeycopy "${SSH_KEYFILE}" "${MYDIR}/ignition/build/ssh_authorized_keys.txt"
     else
       echo "Supplied SSH keyfile not readable"
@@ -109,13 +109,13 @@ else
 fi
 
 # Only single node clusters do not need a token
-if [ -z "${SINGLE}" -a -z "${TOKEN}" ]; then
+if [ -z "${SINGLE}" ] && [ -z "${TOKEN}" ]; then
   echo "Error: Token (-t) needed"
   usage
 fi
 
 # Both the -a and -b options also need a server url
-if [ \( -n "${BOTH}" -o -n "${AGENT}" \) -a -z "${SERVERURL}" ]; then
+if { [ -n "${BOTH}" ] || [ -n "${AGENT}" ] ; } && [ -z "${SERVERURL}" ]; then
   echo "Error: Server URL (-u) needed"
   usage
 fi
@@ -125,18 +125,18 @@ fi
 if [ -n "${BOTH}" ]; then
   echo "Creating server ISO using:"
   echo "$MYDIR/$MYNAME -t ${TOKEN} -K"
-  $MYDIR/$MYNAME -t "${TOKEN}" -K
+  "${MYDIR}/${MYNAME}" -t "${TOKEN}" -K
 
   echo
   echo "Creating agent ISO using:"
   echo "$MYDIR/$MYNAME -a -t ${TOKEN} -u ${SERVERURL} -K"
-  $MYDIR/$MYNAME -a -t "${TOKEN}" -u "${SERVERURL}" -K
+  "${MYDIR}/${MYNAME}" -a -t "${TOKEN}" -u "${SERVERURL}" -K
 
   exit
 fi
 
 OLDDIR=$(pwd)
-cd $MYDIR
+cd "${MYDIR}"
 
 # Building the ISO image
 # From https://www.murillodigital.com/tech_talk/k3s_in_coreos/
@@ -146,7 +146,7 @@ echo "Step 1: Download the vanilla CoreOS ISO image"
 podman run --privileged --pull=always --rm -v .:/data -w /data quay.io/coreos/coreos-installer:release download -f iso
 
 ## The name will be something like fedora-coreos-...iso
-ISOFILE=$(ls fedora-coreos-*.iso | tail -n 1)
+ISOFILE=$(find . -name fedora-coreos-\*.iso | sort -n | tail -n 1)
 
 echo
 if [ $INSTALL_TYPE == "server" ]; then
@@ -181,7 +181,7 @@ podman run --rm -v ./ignition:/ignition:z quay.io/coreos/butane:release --pretty
 
 echo
 echo "Step 4: Embed the coreos-autoinstall.ign ignition file inside the ISO image"
-podman run --privileged --rm -v .:/data -w /data quay.io/coreos/coreos-installer:release iso ignition embed -i ignition/build/coreos-autoinstall.ign ./${ISOFILE}
+podman run --privileged --rm -v .:/data -w /data quay.io/coreos/coreos-installer:release iso ignition embed -i ignition/build/coreos-autoinstall.ign "./${ISOFILE}"
 
 echo
 echo "Step 5: Storing ${INSTALL_TYPE} iso"
@@ -190,6 +190,6 @@ cp "${ISOFILE}" "${INSTALL_TYPE}.iso"
 
 echo
 echo "Step 6: Resetting Fedora CoreOS ISO image"
-podman run --privileged --rm -v .:/data -w /data quay.io/coreos/coreos-installer:release iso reset ./${ISOFILE}
+podman run --privileged --rm -v .:/data -w /data quay.io/coreos/coreos-installer:release iso reset "./${ISOFILE}"
 
-cd $OLDDIR
+cd "${OLDDIR}"
