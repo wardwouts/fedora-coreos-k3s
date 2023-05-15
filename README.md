@@ -8,11 +8,11 @@ And tries to modernize things a bit and automate further.
 
 Creating the ISOs for automatic installation should be as simple as:
 ```
-./01-build-iso.sh -b -t <TOKEN> -u <SERVER URL>
+./01-build-iso.sh -b -t <TOKEN> -u <SERVER URL> -k <SSH KEY FILE>
 ```
 This should generate both an `agent.iso` and `server.iso` file. The server URL should have the format of `https://ServerIP:6443`.
 
-Before doing this you will want to add your own public ssh keys to `ignition/k3s-common-ssh_authorized_keys.txt`, so that you can access your own k3s cluster hosts afterwards.
+The ssh key file (`-k`) should list the public keys that must be added to the authorized_keys file for the `core` user. Next to ssh public keys lines of the format `github:USERNAME` can be added. These lines will be replaced with the contents of https://github.com/USERNAME.keys
 
 It is also possible to use the script to only create an agent or server ISO. Or evan ISO file for a single node cluster.
 
