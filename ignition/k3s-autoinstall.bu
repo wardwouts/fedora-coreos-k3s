@@ -37,4 +37,4 @@ passwd:
   users:
     - name: core
       ssh_authorized_keys_local:
-        - k3s-common/ssh_authorized_keys.txt
+        - build/ssh_authorized_keys.txt

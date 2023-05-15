@@ -8,11 +8,13 @@ usage() {
   echo "Tool to build iso files for creating k3s nodes on fedora coreos"
   echo
   echo "Usage:"
-  echo "$0 [-abh] [-u serverurl] -t <token>"
+  echo "$0 [-abhKs] [-k <keyfile>] [-u serverurl] -t <token>"
   echo
   echo "-a		Create ISO for agent, default is server"
   echo "-b		Create both server and agent ISOs"
   echo "-h		This help message"
+  echo "-k <sshkeyfile>	Use these SSH authorized keys for accessing CoreOS"
+  echo "-K		Don't use a keyfile and don't ask"
   echo "-s		Single node (can't be used with -a/-b)"
   echo "-t <token>	Use this token for cluster"
   echo "-u <serverurl>	Server URL (needed with -a/-b)"
@@ -35,22 +37,31 @@ askyn() {
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
 # Initialize our own variables:
-CREATE_BOTH=""
+AGENT=""
+BOTH=""
+SINGLE=""
 INSTALL_TYPE="server"
+
 TOKEN=""
 SERVERURL=""
+SSH_KEYFILE=""
+NO_KEYFILE=""
+
+echo $*
 
 # getopts only allows single letter options (but is apparently the most
 # portable). If you want multi letter options (eg --help) use getopt.
-while getopts "habst:u:" opt; do
+while getopts "abhKk:st:u:" opt; do
   case "$opt" in
-  a)  INSTALL_TYPE="agent" ;;
-  b)  CREATE_BOTH="yes" ;;
+  a)  AGENT="agent" ;;
+  b)  BOTH="yes" ;;
   h)
       usage
       exit 0
       ;;
-  s)  INSTALL_TYPE="single" ;;
+  k)  SSH_KEYFILE="$OPTARG" ;;
+  K)  echo blablaa ; NO_KEYFILE="yes" ;;
+  s)  SINGLE="single" ;;
   t)  TOKEN="$OPTARG" ;;
   u)  SERVERURL="$OPTARG" ;;
   ?)  exit 1 ;; # message provided by getopts
@@ -64,32 +75,49 @@ shift $((OPTIND-1))
 MYDIR=$(dirname "$(realpath "$0")")
 MYNAME=$(basename "$(realpath "$0")")
 
-if [ ! "${INSTALL_TYPE}" == "single" -a -z "${TOKEN}" ]; then
+# SSH keyfile is very likely needed
+if [ -z "${SSH_KEYFILE}" -a -z "${NO_KEYFILE}" ]; then
+  if ( ! askyn "No SSH keyfile supplied. You won't be able to login over SSH. Continue?" ); then
+    exit
+  fi
+else
+  if [ -z ${NO_KEYFILE} ]; then
+    if [ -n "${SSH_KEYFILE}" -a -r "${SSH_KEYFILE}" ]; then
+      # XXX would be nice to use the k3os github.com/<username>.keys trick here
+      # https://github.com/rancher/k3os#ssh_authorized_keys
+      cp "${SSH_KEYFILE}" "${MYDIR}/ignition/build/ssh_authorized_keys.txt"
+    else
+      echo "Supplied SSH keyfile not readable"
+      exit
+    fi
+  fi
+fi
+
+# Only single node clusters do not need a token
+if [ -z "${SINGLE}" -a -z "${TOKEN}" ]; then
   echo "Error: Token (-t) needed"
   usage
 fi
 
-if [ -n "${CREATE_BOTH}" -a -z "${SERVERURL}" ]; then
+# Both the -a and -b options also need a server url
+if [ \( -n "${BOTH}" -o -n "${AGENT}" \) -a -z "${SERVERURL}" ]; then
   echo "Error: Server URL (-u) needed"
   usage
 fi
 
-if [ -n "${CREATE_BOTH}" ]; then
+# Call this script again for both server and agent setups
+# Keyfile is already in right location so not needed here anymore
+if [ -n "${BOTH}" ]; then
   echo "Creating server ISO using:"
-  echo "$MYDIR/$MYNAME -t ${TOKEN}"
-  $MYDIR/$MYNAME -t "${TOKEN}"
+  echo "$MYDIR/$MYNAME -t ${TOKEN} -K"
+  $MYDIR/$MYNAME -t "${TOKEN}" -K
 
   echo
   echo "Creating agent ISO using:"
-  echo "$MYDIR/$MYNAME -a -t ${TOKEN} -s ${SERVERURL}"
-  $MYDIR/$MYNAME -a -t "${TOKEN}" -s "${SERVERURL}"
+  echo "$MYDIR/$MYNAME -a -t ${TOKEN} -u ${SERVERURL} -K"
+  $MYDIR/$MYNAME -a -t "${TOKEN}" -u "${SERVERURL}" -K
 
   exit
-fi
-
-if [ "${INSTALL_TYPE}" == "agent" -a -z "${SERVERURL}" ]; then
-  echo "Error: Server URL (-u) needed"
-  usage
 fi
 
 OLDDIR=$(pwd)
