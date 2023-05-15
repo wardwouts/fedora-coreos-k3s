@@ -33,6 +33,25 @@ askyn() {
   done
 }
 
+sshkeycopy() {
+  # This implements the k3os github.com/<username>.keys trick here
+  # https://github.com/rancher/k3os#ssh_authorized_keys
+  # lines of the format `github:USERNAME` will be replaced
+  # with the contents of https://github.com/USERNAME.keys
+  # The result will be coded in the ISO, so not parsed live on the k3s system
+  SSH_KEYFILE="$1"
+  SSH_OUTFILE="$2"
+  rm -f "${SSH_OUTFILE}"
+  while read LINE; do
+    if ( echo "${LINE}" | grep -q '^github:' ); then
+      USER=${LINE##github:}
+      curl -s https://github.com/${USER}.keys >> "${SSH_OUTFILE}"
+    else
+      echo $LINE >> "${SSH_OUTFILE}"
+    fi
+  done < "${SSH_KEYFILE}"
+}
+
 # A POSIX variable
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
@@ -81,9 +100,7 @@ if [ -z "${SSH_KEYFILE}" -a -z "${NO_KEYFILE}" ]; then
 else
   if [ -z ${NO_KEYFILE} ]; then
     if [ -n "${SSH_KEYFILE}" -a -r "${SSH_KEYFILE}" ]; then
-      # XXX would be nice to use the k3os github.com/<username>.keys trick here
-      # https://github.com/rancher/k3os#ssh_authorized_keys
-      cp "${SSH_KEYFILE}" "${MYDIR}/ignition/build/ssh_authorized_keys.txt"
+      sshkeycopy "${SSH_KEYFILE}" "${MYDIR}/ignition/build/ssh_authorized_keys.txt"
     else
       echo "Supplied SSH keyfile not readable"
       exit
@@ -168,6 +185,7 @@ podman run --privileged --rm -v .:/data -w /data quay.io/coreos/coreos-installer
 
 echo
 echo "Step 5: Storing ${INSTALL_TYPE} iso"
+rm -f "${INSTALL_TYPE}.iso"
 cp "${ISOFILE}" "${INSTALL_TYPE}.iso"
 
 echo
