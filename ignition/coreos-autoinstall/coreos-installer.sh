@@ -15,7 +15,7 @@ main() {
         return 1
     fi
 
-    cmd="coreos-installer install --console tty0"
+    cmd="coreos-installer install --console ttyS0"
     cmd+=" --ignition-file=${ignition_file}"
     cmd+=" ${install_device}"
 
