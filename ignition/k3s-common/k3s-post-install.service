@@ -1,0 +1,20 @@
+[Unit]
+Description=K3s post-install service
+After=network-online.target
+Wants=network-online.target
+Before=systemd-user-sessions.service
+OnFailure=emergency.target
+OnFailureJobMode=replace-irreversibly
+
+[Service]
+RemainAfterExit=yes
+Type=oneshot
+ExecStartPre=sh -c 'while [ ! -d /var/lib/rancher/k3s/server/manifests/ ]; do sleep 5; done'
+ExecStart=sh -c 'mv /usr/local/src/traefik-config.yaml /var/lib/rancher/k3s/server/manifests/'
+ExecStartPost=/usr/bin/systemctl disable k3s-post-install.service
+#ExecStartPost=/usr/bin/systemctl restart k3s.service
+StandardOutput=kmsg+console
+StandardError=kmsg+console
+
+[Install]
+WantedBy=multi-user.target

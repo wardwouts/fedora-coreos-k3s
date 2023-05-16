@@ -15,6 +15,8 @@ systemd:
     enabled: true
     contents_local: build/k3s-installer.service
 
+%%% LETSENCRYPT %%%
+
 passwd:
   users:
     - name: core

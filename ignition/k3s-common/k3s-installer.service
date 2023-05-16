@@ -14,8 +14,9 @@ Environment="INSTALL_K3S_SELINUX_WARN=true"
 Environment="K3S_KUBECONFIG_MODE=644"
 Environment="INSTALL_K3S_EXEC=%%% INSTALL OPTS %%%"
 ExecStart=sh -c 'curl -sfL https://get.k3s.io | sh -'
-ExecStartPost=sh -c 'echo "selinux: true" >> /etc/rancher/k3s/config.yaml'
+ExecStartPost=sh -c 'mkdir -p "/etc/rancher/k3s" && echo "selinux: true" >> /etc/rancher/k3s/config.yaml'
 ExecStartPost=/usr/bin/systemctl disable k3s-installer.service
+ExecStartPost=sh -c '/usr/bin/systemctl start k3s-post-install.service || echo "No post-install service?"'
 StandardOutput=kmsg+console
 StandardError=kmsg+console
 

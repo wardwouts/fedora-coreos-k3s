@@ -1,0 +1,16 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    additionalArguments:
+      #- "--log.level=DEBUG"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=websecure"
+        #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.email=%%% EMAIL %%%"
+      - "--certificatesresolvers.myresolver.acme.storage=/data/acme.json"
+      - "--entrypoints.web.http.redirections.entryPoint.to=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"

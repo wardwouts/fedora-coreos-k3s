@@ -1,0 +1,10 @@
+  - name: k3s-post-install.service
+    enabled: false
+    contents_local: k3s-common/k3s-post-install.service
+
+storage:
+  files:
+    - path: /usr/local/src/traefik-config.yaml
+      mode: 0644
+      contents:
+        local: build/traefik-config.yaml

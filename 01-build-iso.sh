@@ -8,16 +8,17 @@ usage() {
   echo "Tool to build iso files for creating k3s nodes on fedora coreos"
   echo
   echo "Usage:"
-  echo "$0 [-abhKs] [-k <keyfile>] [-u serverurl] -t <token>"
+  echo "$0 [-abhKs] [-k <keyfile>] [-u <serverurl>] [-l <email>] -t <token>"
   echo
   echo "-a		Create ISO for agent, default is server"
   echo "-b		Create both server and agent ISOs"
   echo "-h		This help message"
   echo "-k <sshkeyfile>	Use these SSH authorized keys for accessing CoreOS"
   echo "-K		Don't use a keyfile and don't ask"
+  echo "-l <email>	Enable LetsEncrypt with <email>"
   echo "-s		Single node (can't be used with -a/-b)"
   echo "-t <token>	Use this token for cluster"
-  echo "-u <serverurl>	Server URL (needed with -a/-b)"
+  echo "-u <serverurl>	Server URL (needed with -a/-b) https://<ServerIP>:6443"
   exit
 }
 
@@ -52,6 +53,34 @@ sshkeycopy() {
   done < "${SSH_KEYFILE}"
 }
 
+setup-letsencrypt() {
+  # The traefik config is only needed on servers or single nodes, not agents
+  EMAIL="$1"
+  sed -e "s/%%% EMAIL %%%/${EMAIL}/" \
+    < ignition/k3s-common/traefik-config.yaml \
+    > ignition/build/traefik-config.yaml
+
+  sed -e '/%%% LETSENCRYPT %%%/{
+   r ignition/k3s-common/letsencrypt.bu
+   d
+  }' "ignition/k3s-autoinstall.bu" > "ignition/build/k3s-autoinstall.bu"
+}
+
+remove-letsencrypt-placeholder() {
+  grep -v '%%% LETSENCRYPT %%%' "ignition/k3s-autoinstall.bu" \
+    > "ignition/build/k3s-autoinstall.bu"
+}
+
+letsencrypt() {
+  EMAIL="$1"
+
+  if [ -n "${EMAIL}" ]; then
+    setup-letsencrypt "${EMAIL}"
+  else
+    remove-letsencrypt-placeholder
+  fi
+}
+
 # A POSIX variable
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
@@ -65,10 +94,11 @@ TOKEN=""
 SERVERURL=""
 SSH_KEYFILE=""
 NO_KEYFILE=""
+EMAIL=""
 
 # getopts only allows single letter options (but is apparently the most
 # portable). If you want multi letter options (eg --help) use getopt.
-while getopts "abhKk:st:u:" opt; do
+while getopts "abhKk:l:st:u:" opt; do
   case "$opt" in
   a)  AGENT="agent" ;;
   b)  BOTH="yes" ;;
@@ -78,6 +108,7 @@ while getopts "abhKk:st:u:" opt; do
       ;;
   k)  SSH_KEYFILE="$OPTARG" ;;
   K)  NO_KEYFILE="yes" ;;
+  l)  EMAIL="$OPTARG" ;;
   s)  SINGLE="single" ;;
   t)  TOKEN="$OPTARG" ;;
   u)  SERVERURL="$OPTARG" ;;
@@ -124,8 +155,13 @@ fi
 # Keyfile is already in right location so not needed here anymore
 if [ -n "${BOTH}" ]; then
   echo "Creating server ISO using:"
-  echo "$MYDIR/$MYNAME -t ${TOKEN} -K"
-  "${MYDIR}/${MYNAME}" -t "${TOKEN}" -K
+  if [ -z "$EMAIL" ]; then
+    echo "$MYDIR/$MYNAME -t ${TOKEN} -K"
+    "${MYDIR}/${MYNAME}" -t "${TOKEN}" -K
+  else
+    echo "$MYDIR/$MYNAME -t ${TOKEN} -K -l ${EMAIL}"
+    "${MYDIR}/${MYNAME}" -t "${TOKEN}" -K -l "${EMAIL}"
+  fi
 
   echo
   echo "Creating agent ISO using:"
@@ -154,15 +190,18 @@ ISOFILE=$(find . -name fedora-coreos-\*.iso | sort -n | tail -n 1)
 echo
 echo "Setting up for ${INSTALL_TYPE} node"
 if [ $INSTALL_TYPE == "server" ]; then
+  letsencrypt "${EMAIL}"
   sed -e "s/%%% INSTALL OPTS %%%/server --token ${TOKEN} --with-node-id/" \
     < ignition/k3s-common/k3s-installer.service \
     > ignition/build/k3s-installer.service
 else
   if [ $INSTALL_TYPE == "agent" ]; then
+    remove-letsencrypt-placeholder
     sed -e "s#%%% INSTALL OPTS %%%#agent --server ${SERVERURL} --token ${TOKEN} --with-node-id#" \
       < ignition/k3s-common/k3s-installer.service \
       > ignition/build/k3s-installer.service
   else
+    letsencrypt "${EMAIL}"
     sed -e "s/%%% INSTALL OPTS %%%//" \
       < ignition/k3s-common/k3s-installer.service \
       > ignition/build/k3s-installer.service
@@ -171,7 +210,7 @@ fi
 
 echo
 echo "Step 2: Create an ign file from k3s-autoinstall.bu"
-podman run --rm -v ./ignition:/ignition:z quay.io/coreos/butane:release --pretty -d /ignition --strict /ignition/k3s-autoinstall.bu > ignition/build/k3s-autoinstall.ign
+podman run --rm -v ./ignition:/ignition:z quay.io/coreos/butane:release --pretty -d /ignition --strict /ignition/build/k3s-autoinstall.bu > ignition/build/k3s-autoinstall.ign
 
 echo
 echo "Step 3: Create the coreos-autoinstall.ign file from coreos-autoinstall.bu"
