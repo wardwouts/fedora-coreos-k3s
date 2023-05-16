@@ -77,7 +77,7 @@ while getopts "abhKk:st:u:" opt; do
       exit 0
       ;;
   k)  SSH_KEYFILE="$OPTARG" ;;
-  K)  echo blablaa ; NO_KEYFILE="yes" ;;
+  K)  NO_KEYFILE="yes" ;;
   s)  SINGLE="single" ;;
   t)  TOKEN="$OPTARG" ;;
   u)  SERVERURL="$OPTARG" ;;
@@ -135,6 +135,9 @@ if [ -n "${BOTH}" ]; then
   exit
 fi
 
+[ -n "${AGENT}" ] && INSTALL_TYPE="agent"
+[ -n "${SINGLE}" ] && INSTALL_TYPE="single"
+
 OLDDIR=$(pwd)
 cd "${MYDIR}"
 
@@ -149,21 +152,19 @@ podman run --privileged --pull=always --rm -v .:/data -w /data quay.io/coreos/co
 ISOFILE=$(find . -name fedora-coreos-\*.iso | sort -n | tail -n 1)
 
 echo
+echo "Setting up for ${INSTALL_TYPE} node"
 if [ $INSTALL_TYPE == "server" ]; then
-  echo "Setting up for server"
   sed -e "s/%%% INSTALL OPTS %%%/server --token ${TOKEN} --with-node-id/" \
     < ignition/k3s-common/k3s-installer.service \
     > ignition/build/k3s-installer.service
 else
   if [ $INSTALL_TYPE == "agent" ]; then
-    echo "Setting up for agent"
     sed -e "s#%%% INSTALL OPTS %%%#agent --server ${SERVERURL} --token ${TOKEN} --with-node-id#" \
-      < ignition/k3s-template/k3s-installer.service \
+      < ignition/k3s-common/k3s-installer.service \
       > ignition/build/k3s-installer.service
   else
-    echo "Setting up for single node"
     sed -e "s/%%% INSTALL OPTS %%%//" \
-      < ignition/k3s-template/k3s-installer.service \
+      < ignition/k3s-common/k3s-installer.service \
       > ignition/build/k3s-installer.service
   fi
 fi
@@ -171,9 +172,6 @@ fi
 echo
 echo "Step 2: Create an ign file from k3s-autoinstall.bu"
 podman run --rm -v ./ignition:/ignition:z quay.io/coreos/butane:release --pretty -d /ignition --strict /ignition/k3s-autoinstall.bu > ignition/build/k3s-autoinstall.ign
-
-# Insert the contents of k3s-autoinstall.ign inside coreos-autoinstall.fcc
-# No longer needed! Yay! Just include the file using contents:local
 
 echo
 echo "Step 3: Create the coreos-autoinstall.ign file from coreos-autoinstall.bu"
