@@ -14,3 +14,14 @@ spec:
       - "--certificatesresolvers.myresolver.acme.storage=/data/acme.json"
       - "--entrypoints.web.http.redirections.entryPoint.to=:443"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    # Enable persistence using Persistent Volume Claims
+    # ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+    # Used along with --certificatesresolvers.le.acme.storage=/data/acme.json to
+    # persist TLS certificates.
+    #
+    persistence:
+      enabled: true
+      accessMode: ReadWriteOnce
+      size: 128Mi
+      # storageClass: ""
+      path: /data
