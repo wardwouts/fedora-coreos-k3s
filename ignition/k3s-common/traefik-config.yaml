@@ -21,7 +21,3 @@ spec:
     #
     persistence:
       enabled: true
-      accessMode: ReadWriteOnce
-      size: 128Mi
-      # storageClass: ""
-      path: /data
