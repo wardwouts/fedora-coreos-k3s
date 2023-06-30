@@ -9,7 +9,6 @@ OnFailureJobMode=replace-irreversibly
 [Service]
 RemainAfterExit=yes
 Type=oneshot
-Environment="INSTALL_K3S_SKIP_SELINUX_RPM=true"
 Environment="INSTALL_K3S_SELINUX_WARN=true"
 Environment="K3S_KUBECONFIG_MODE=644"
 Environment="INSTALL_K3S_EXEC=%%% INSTALL OPTS %%%"
