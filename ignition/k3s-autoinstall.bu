@@ -11,6 +11,10 @@ systemd:
         ExecStart=
         ExecStart=-/usr/sbin/agetty --autologin core --noclear %I $TERM
 
+  - name: kill-k3s.service
+    enabled: true
+    contents_local: k3s-common/kill-k3s.service
+
   - name: k3s-installer.service
     enabled: true
     contents_local: build/k3s-installer.service

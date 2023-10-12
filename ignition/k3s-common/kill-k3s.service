@@ -1,0 +1,15 @@
+# /etc/systemd/system/kill-k3s.service
+# multi-user.target is one of the last services to start. Shutdown is in reverse order.
+# As a result this gets executed way before the shutdown of hte k3s service.
+[Unit]
+Description=Kill k3s on shutdown
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/usr/local/bin/k3s-killall.sh
+
+[Install]
+WantedBy=multi-user.target
