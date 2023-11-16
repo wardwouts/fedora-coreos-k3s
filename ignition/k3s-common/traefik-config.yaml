@@ -14,6 +14,9 @@ spec:
       - "--certificatesresolvers.myresolver.acme.storage=/data/acme.json"
       - "--entrypoints.web.http.redirections.entryPoint.to=:443"
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--serversTransport.insecureSkipVerify=true"
+      - "--providers.kubernetesCRD.allowExternalNameServices=true"
+      - "--providers.kubernetesIngress.allowExternalNameServices=true"
     # Enable persistence using Persistent Volume Claims
     # ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
     # Used along with --certificatesresolvers.le.acme.storage=/data/acme.json to
